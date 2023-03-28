@@ -11,34 +11,36 @@ const AvailableStock = () => {
 
   useEffect(() => {
     const fetchStock = async () => {
-      const response = await fetch(
-        'https://pokeapi.co/api/v2/item/1/'
-      );
+      try {
+        const response = await fetch('https://pokeapi.co/api/v2/item');
+        
+        if (!response.ok) {
+          throw new Error('Something went wrong!');
+        }
 
-      if (!response.ok) {
-        throw new Error('Something went wrong!');
+        const data = await response.json();
+
+        const promises = data.results
+          .slice(0, 10)
+          .map((item) => fetch(item.url).then((response) => response.json()));
+
+        const itemDetails = await Promise.all(promises);
+
+        const loadedStock = itemDetails.map((item, index) => ({
+          id: index,
+          name: item.name,
+          cost: item.cost,
+        }));
+
+        setStock(loadedStock);
+        setIsLoading(false);
+      } catch (error) {
+        setIsLoading(false);
+        setHttpError(error.message);
       }
-
-      const responseData = await response.json();
-
-      const loadedStock = [];
-
-      for (const key in responseData) {
-        loadedStock.push({
-          id: key,
-          name: responseData[key].name,
-          cost: responseData[key].cost,
-        });
-      }
-
-      setStock(loadedStock);
-      setIsLoading(false);
     };
 
-    fetchStock().catch((error) => {
-      setIsLoading(false);
-      setHttpError(error.message);
-    });
+    fetchStock();
   }, []);
 
   if (isLoading) {
